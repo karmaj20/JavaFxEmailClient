@@ -4,19 +4,23 @@ import com.barosanu.EmailManager;
 import com.barosanu.controller.services.LoginService;
 import com.barosanu.model.EmailAccount;
 import com.barosanu.view.ViewFactory;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-public class LoginWindowController extends BaseController {
+import java.net.URL;
+import java.util.ResourceBundle;
+
+
+public class LoginWindowController extends BaseController implements Initializable {
 
     @FXML
-    private Button errorLabel;
+    private Label errorLabel;
 
     @FXML
-    private TextField emailAddressField;
+    private TextField emailAddressFied;
 
     @FXML
     private TextField passwordField;
@@ -27,25 +31,37 @@ public class LoginWindowController extends BaseController {
 
     @FXML
     void loginButtonAction() {
-        if (fieldsAreValid()) {
-            EmailAccount emailAccount = new EmailAccount(emailAddressField.getText(), passwordField.getText());
-            LoginService loginService = new LoginService(emailAccount, emailManager);
-            EmailLoginResult emailLoginResult = loginService.login();
-
-            switch (emailLoginResult) {
-                case SUCCESS:
-                    System.out.println("login succesful!!!" + emailAccount);
-                    return;
-            }
-        }
         System.out.println("loginButtonAction!!");
-        viewFactory.showMainWindow();
-        Stage stage = (Stage) errorLabel.getScene().getWindow();
-        viewFactory.closeStage(stage);
+
+        if (fieldsAreValid()) {
+            EmailAccount emailAccount = new EmailAccount(emailAddressFied.getText(), passwordField.getText());
+            LoginService loginService = new LoginService(emailAccount, emailManager);
+            loginService.start();
+            loginService.setOnSucceeded(workerStateEvent -> {
+                EmailLoginResult emailLoginResult = loginService.getValue();
+                switch (emailLoginResult) {
+                    case SUCCESS:
+                        System.out.println("login succesful!!!" + emailAccount);
+                        if (!viewFactory.isMainViewInitialized()) {
+                            viewFactory.showMainWindow();
+                        }
+                        Stage stage = (Stage) errorLabel.getScene().getWindow();
+                        viewFactory.closeStage(stage);
+                        return;
+                    case FAILED_BY_CREDENTIALS:
+                        errorLabel.setText("invalid credentials");
+                    case FAILED_BY_UNEXPECTED_ERROR:
+                        errorLabel.setText("unexpected error!");
+                        return;
+                    default:
+                        return;
+                }
+            });
+        }
     }
 
     private boolean fieldsAreValid() {
-        if (emailAddressField.getText().isEmpty()) {
+        if (emailAddressFied.getText().isEmpty()) {
             errorLabel.setText("Please fill email");
             return false;
         }
@@ -57,4 +73,9 @@ public class LoginWindowController extends BaseController {
         return true;
     }
 
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        emailAddressFied.setText("ktestowe1999@gmail.com");
+        passwordField.setText("xxxxxx");
+    }
 }
